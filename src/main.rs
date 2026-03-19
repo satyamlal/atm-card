@@ -27,7 +27,32 @@ fn main() {
                 continue;
             }
         };
-        execute_choice(choice, &mut user_balance);
+
+        if choice == 4 {
+            exit_command();
+        }
+
+        println!("Please enter your PIN to proceed!: ");
+        let saved_pin: u64 = 8555;
+        let mut user_pin_entry = String::new();
+
+        io::stdin()
+            .read_line(&mut user_pin_entry)
+            .expect("Unable to read PIN from the terminal!");
+
+        let user_pin: u64 = match user_pin_entry.trim().parse() {
+            Ok(pin_verify) => pin_verify,
+            Err(_) => {
+                println!("Wrong input!");
+                break;
+            }
+        };
+        if user_pin == saved_pin {
+            execute_choice(choice, &mut user_balance);
+        } else {
+            println!("You entered a wrong PIN. Try again!");
+            continue;
+        }
     }
 }
 
