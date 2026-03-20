@@ -5,73 +5,123 @@ use std::time::Duration;
 
 fn main() {
     let mut user_balance: u64 = 0;
-    let mut count: u8 = 0;
-
-    println!("Hey There...");
-    println!("Please enter your PIN to proceed!: ");
     let mut saved_pin: u64 = 8555;
-    let mut user_pin_entry = String::new();
+    let mut attempt_count: u8 = 0;
+    let mut pin_changed: bool = false;
 
-    io::stdin()
-        .read_line(&mut user_pin_entry)
-        .expect("Unable to read PIN from the terminal!");
+    println!("-----------------------------------");
+    println!("[INFO] Welcome to the ATM terminal.");
 
-    let user_pin: u64 = match user_pin_entry.trim().parse() {
-        Ok(pin_verify) => pin_verify,
-        Err(_) => {
-            println!("Wrong input!");
-            return;
+    // Initial Login using PIN
+    loop {
+        match read_pin("[INPUT] Please enter your PIN to proceed: ") {
+            Some(entered_pin) if entered_pin == saved_pin => {
+                println!("[SUCCESS] PIN Verified. Access Granted!");
+                break;
+            }
+            Some(_) => {
+                attempt_count += 1;
+                if attempt_count >= 3 {
+                    println!(
+                        "[BLOCKED] 3 Wrong PIN attempt(s). Your account has been blocked for 48 hours."
+                    );
+                    exit_command();
+                }
+                println!(
+                    "[ERROR] Wrong PIN. {} attempts remaining.",
+                    3 - attempt_count
+                );
+            }
+            None => {
+                eprintln!("[ERROR] Invalid input. Please enter numbers only.");
+            }
         }
-    };
-    if user_pin == saved_pin {
-        loop {
-            let mut user_input = String::new();
-            println!("Please select your option.");
-            println!("1. Deposit Money");
-            println!("2. Withdraw Money");
-            println!("3. Check Balance");
-            println!("4. Change PIN");
-            println!("5. Exit");
-            println!("");
-            println!("Enter your choice: ");
+    }
 
-            io::stdin()
-                .read_line(&mut user_input)
-                .expect("Unable to read terminal input!");
-
-            let choice: u8 = match user_input.trim().parse() {
-                Ok(choice) => choice,
-                Err(_) => {
-                    eprintln!("Please enter a valid number!");
+    loop {
+        if pin_changed {
+            // Ask for re-verification if PIN was changed
+            match read_pin("[INPUT] Please enter your PIN to proceed: ") {
+                Some(entered_pin) if entered_pin == saved_pin => {
+                    println!("[SUCCESS] PIN Verified. Access Granted!");
+                    pin_changed = false;
                     continue;
                 }
-            };
-
-            if choice == 5 {
-                exit_command();
+                Some(_) => {
+                    attempt_count += 1;
+                    if attempt_count >= 3 {
+                        println!(
+                            "[BLOCKED] 3 Wrong PIN attempt(s). Your account has been blocked for 48 hours."
+                        );
+                        exit_command();
+                    }
+                    eprintln!(
+                        "[ERROR] Wrong PIN. {} attempts remaining.",
+                        3 - attempt_count
+                    );
+                    continue;
+                }
+                None => {
+                    eprintln!("[ERROR] Invalid input. Please enter numbers only.");
+                }
             }
-            execute_choice(choice, &mut user_balance, &mut saved_pin);
         }
-    } else {
-        count += 1;
-        if count == 3 {
-            println!("You have entered 3 wrong PIN. Your account has been blocked for 48 hours.");
+
+        println!("--------------------------------------------");
+        println!("  [MENU] Please select your option.");
+        println!("  1. Deposit Money");
+        println!("  2. Withdraw Money");
+        println!("  3. Check Balance");
+        println!("  4. Change PIN");
+        println!("  5. Exit");
+        println!("--------------------------------------------");
+        println!("[INPUT] Enter your choice: ");
+
+        let mut user_input = String::new();
+        io::stdin()
+            .read_line(&mut user_input)
+            .expect("[FATAL] Unable to read 'user_input'!");
+
+        let choice: u8 = match user_input.trim().parse() {
+            Ok(choice) => choice,
+            Err(_) => {
+                eprintln!("[ERROR] Please enter a number between 1 to 5!");
+                continue;
+            }
+        };
+
+        if choice == 5 {
             exit_command();
         }
-        println!("You entered a wrong PIN. Try again!");
-        println!("Only {} attemps left...", 3 - count);
-        return;
+
+        if !(1..=5).contains(&choice) {
+            eprintln!("[ERROR] Invalid option: {}. Choose between 1 to 5", choice);
+            continue;
+        }
+        execute_choice(
+            choice,
+            &mut user_balance,
+            &mut saved_pin,
+            &mut pin_changed,
+            &mut attempt_count,
+        );
     }
 }
 
-fn execute_choice(choice: u8, user_balance: &mut u64, saved_pin: &mut u64) {
+fn execute_choice(
+    choice: u8,
+    user_balance: &mut u64,
+    saved_pin: &mut u64,
+    pin_changed: &mut bool,
+    attemp_count: &mut u8,
+) {
     match choice {
         1 => deposit_money(user_balance),
         2 => withdraw_money(user_balance),
         3 => fetch_balance(user_balance),
-        4 => change_pin(saved_pin),
+        4 => change_pin(saved_pin, pin_changed, attemp_count),
         5 => exit_command(),
-        _ => eprintln!("Wrong Input!"),
+        _ => eprintln!("[ERROR] Unhandled choice '{}' in execute_choice.", choice),
     }
 }
 
@@ -91,7 +141,7 @@ fn read_pin(prompt: &str) -> Option<u64> {
     }
 }
 
-fn change_pin(saved_pin: &mut u64) {
+fn change_pin(saved_pin: &mut u64, pin_changed: &mut bool, attemp_count: &mut u8) {
     let Some(current_pin) = read_pin("Please enter your current pin: ") else {
         return;
     };
@@ -106,6 +156,8 @@ fn change_pin(saved_pin: &mut u64) {
     };
 
     *saved_pin = new_pin;
+    *pin_changed = true;
+    *attemp_count = 0;
     println!("PIN changed successfully!")
 }
 
