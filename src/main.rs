@@ -7,61 +7,60 @@ fn main() {
     let mut user_balance: u64 = 0;
     let mut count: u8 = 0;
 
-    loop {
-        let mut user_input = String::new();
-        println!("Please select your option.");
-        println!("1. Deposit Money");
-        println!("2. Withdraw Money");
-        println!("3. Check Balance");
-        println!("4. Change PIN");
-        println!("5. Exit");
-        println!("");
-        println!("Enter your choice: ");
+    println!("Hey There...");
+    println!("Please enter your PIN to proceed!: ");
+    let mut saved_pin: u64 = 8555;
+    let mut user_pin_entry = String::new();
 
-        io::stdin()
-            .read_line(&mut user_input)
-            .expect("Unable to read terminal input!");
+    io::stdin()
+        .read_line(&mut user_pin_entry)
+        .expect("Unable to read PIN from the terminal!");
 
-        let choice: u8 = match user_input.trim().parse() {
-            Ok(choice) => choice,
-            Err(_) => {
-                eprintln!("Please enter a valid number!");
-                continue;
-            }
-        };
-
-        if choice == 5 {
-            exit_command();
+    let user_pin: u64 = match user_pin_entry.trim().parse() {
+        Ok(pin_verify) => pin_verify,
+        Err(_) => {
+            println!("Wrong input!");
+            return;
         }
+    };
+    if user_pin == saved_pin {
+        loop {
+            let mut user_input = String::new();
+            println!("Please select your option.");
+            println!("1. Deposit Money");
+            println!("2. Withdraw Money");
+            println!("3. Check Balance");
+            println!("4. Change PIN");
+            println!("5. Exit");
+            println!("");
+            println!("Enter your choice: ");
 
-        println!("Please enter your PIN to proceed!: ");
-        let mut saved_pin: u64 = 8555;
-        let mut user_pin_entry = String::new();
+            io::stdin()
+                .read_line(&mut user_input)
+                .expect("Unable to read terminal input!");
 
-        io::stdin()
-            .read_line(&mut user_pin_entry)
-            .expect("Unable to read PIN from the terminal!");
+            let choice: u8 = match user_input.trim().parse() {
+                Ok(choice) => choice,
+                Err(_) => {
+                    eprintln!("Please enter a valid number!");
+                    continue;
+                }
+            };
 
-        let user_pin: u64 = match user_pin_entry.trim().parse() {
-            Ok(pin_verify) => pin_verify,
-            Err(_) => {
-                println!("Wrong input!");
-                break;
-            }
-        };
-        if user_pin == saved_pin {
-            execute_choice(choice, &mut user_balance, &mut saved_pin);
-        } else {
-            count += 1;
-            if count == 3 {
-                println!(
-                    "You have entered 3 wrong PIN. Your account has been blocked for 48 hours."
-                );
+            if choice == 5 {
                 exit_command();
             }
-            println!("You entered a wrong PIN. Try again!");
-            continue;
+            execute_choice(choice, &mut user_balance, &mut saved_pin);
         }
+    } else {
+        count += 1;
+        if count == 3 {
+            println!("You have entered 3 wrong PIN. Your account has been blocked for 48 hours.");
+            exit_command();
+        }
+        println!("You entered a wrong PIN. Try again!");
+        println!("Only {} attemps left...", 3 - count);
+        return;
     }
 }
 
